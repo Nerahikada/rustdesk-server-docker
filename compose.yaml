@@ -1,0 +1,70 @@
+services:
+  http:
+    image: nginx:stable
+    volumes:
+      - ./http.conf:/etc/nginx/conf.d/default.conf:ro
+      - letsencrypt_var:/var/lib/letsencrypt
+    network_mode: host
+    restart: unless-stopped
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - letsencrypt_etc:/etc/letsencrypt
+      - letsencrypt_var:/var/lib/letsencrypt
+    command: >
+      certonly --agree-tos --no-eff-email --non-interactive--webroot --webroot-path /var/lib/letsencrypt
+      --email YOUR_EMAIL_ADDRESS_HERE
+      -d RUSTDESK_SERVER_DOMAIN_HERE
+    depends_on:
+      - http
+  obtain_certbot_nginx_conf:
+    image: alpine/curl
+    volumes:
+      - letsencrypt_etc:/etc/letsencrypt
+    command: >
+      -fsSL https://raw.githubusercontent.com/certbot/certbot/refs/heads/main/certbot-nginx/src/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf
+      -o /etc/letsencrypt/options-ssl-nginx.conf
+    depends_on:
+      certbot:
+        condition: service_completed_successfully
+  obtain_certbot_dhparams:
+    image: alpine/curl
+    volumes:
+      - letsencrypt_etc:/etc/letsencrypt
+    command: >
+      -fsSL https://raw.githubusercontent.com/certbot/certbot/refs/heads/main/certbot/src/certbot/ssl-dhparams.pem
+      -o /etc/letsencrypt/ssl-dhparams.pem
+    depends_on:
+      certbot:
+        condition: service_completed_successfully
+  hbbr:
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr
+    volumes:
+      - ./rustdesk_data:/root
+    network_mode: host
+    restart: unless-stopped
+  hbbs:
+    image: rustdesk/rustdesk-server:latest
+    command: hbbs
+    volumes:
+      - ./rustdesk_data:/root
+    network_mode: host
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+  https:
+    image: nginx:stable
+    volumes:
+      - ./https.conf:/etc/nginx/conf.d/default.conf:ro
+      - letsencrypt_etc:/etc/letsencrypt:ro
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      obtain_certbot_nginx_conf:
+        condition: service_completed_successfully
+      obtain_certbot_dhparams:
+        condition: service_completed_successfully
+volumes:
+  letsencrypt_etc:
+  letsencrypt_var:
