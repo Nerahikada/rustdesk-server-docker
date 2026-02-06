@@ -12,7 +12,7 @@ services:
       - letsencrypt_etc:/etc/letsencrypt
       - letsencrypt_var:/var/lib/letsencrypt
     command: >
-      certonly --agree-tos --no-eff-email --non-interactive--webroot --webroot-path /var/lib/letsencrypt
+      certonly --agree-tos --no-eff-email --non-interactive --webroot --webroot-path /var/lib/letsencrypt
       --email YOUR_EMAIL_ADDRESS_HERE
       -d RUSTDESK_SERVER_DOMAIN_HERE
     depends_on:
