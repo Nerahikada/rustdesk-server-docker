@@ -23,6 +23,8 @@ services:
   hbbr:
     image: rustdesk/rustdesk-server:latest
     command: hbbr -k _
+    environment:
+      PORT: ${RUSTDESK_PORT:-21116}
     volumes:
       - ./rustdesk_data:/root
     network_mode: host
@@ -30,6 +32,8 @@ services:
   hbbs:
     image: rustdesk/rustdesk-server:latest
     command: hbbs
+    environment:
+      PORT: ${RUSTDESK_PORT:-21116}
     volumes:
       - ./rustdesk_data:/root
     network_mode: host
@@ -39,6 +43,7 @@ services:
   https:
     image: nginx:stable
     volumes:
+      - ./nginx-ports.envsh:/docker-entrypoint.d/15-rustdesk-ports.envsh:ro
       - ./nginx-reload.sh:/docker-entrypoint.d/40-nginx-reload.sh:ro
       - ./https.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./options-ssl-nginx.conf:/etc/nginx/options-ssl-nginx.conf:ro
@@ -46,6 +51,7 @@ services:
       - letsencrypt_etc:/etc/letsencrypt:ro
     environment:
       RUSTDESK_DOMAIN: ${RUSTDESK_DOMAIN:?set RUSTDESK_DOMAIN in .env}
+      RUSTDESK_PORT: ${RUSTDESK_PORT:-21116}
       NGINX_ENVSUBST_FILTER: "^RUSTDESK_"
     network_mode: host
     restart: unless-stopped

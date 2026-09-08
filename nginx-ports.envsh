@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# envsubst has no arithmetic, so derive the ports here; .envsh is sourced by the entrypoint before the templates are rendered.
+export RUSTDESK_WS_ID_PORT=$((RUSTDESK_PORT + 2))
+export RUSTDESK_WS_RELAY_PORT=$((RUSTDESK_PORT + 3))
