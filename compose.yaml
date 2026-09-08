@@ -39,7 +39,7 @@ services:
         condition: service_completed_successfully
   hbbr:
     image: rustdesk/rustdesk-server:latest
-    command: hbbr
+    command: hbbr -k _
     volumes:
       - ./rustdesk_data:/root
     network_mode: host
