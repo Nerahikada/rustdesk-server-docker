@@ -14,7 +14,7 @@ services:
     volumes:
       - letsencrypt_etc:/etc/letsencrypt
       - letsencrypt_var:/var/lib/letsencrypt
-    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --standalone --quiet; sleep 12h & wait $${!}; done'
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --standalone; sleep 12h & wait $${!}; done'
     network_mode: host
     restart: unless-stopped
     depends_on:
