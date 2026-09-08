@@ -16,11 +16,11 @@ docker compose up -d
 
 ## Firewall
 
-`hbbs`, `hbbr` and both nginx services use host networking, so they bind on every interface.
+`hbbs`, `hbbr`, nginx and certbot use host networking, so they bind on every interface.
 
 | Port | Protocol | Service | Internet | Purpose |
 | --- | --- | --- | --- | --- |
-| 80 | TCP | nginx | yes | ACME http-01 |
+| 80 | TCP | certbot | yes | ACME http-01, bound only while issuing or renewing |
 | 443 | TCP | nginx | yes | WebSocket over TLS |
 | 21115 | TCP | hbbs | yes | NAT type test |
 | 21116 | TCP + UDP | hbbs | yes | ID registration, rendezvous, hole punching |
