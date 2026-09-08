@@ -23,6 +23,16 @@ services:
     depends_on:
       http:
         condition: service_healthy
+  certbot_renew:
+    image: certbot/certbot:latest
+    volumes:
+      - letsencrypt_etc:/etc/letsencrypt
+      - letsencrypt_var:/var/lib/letsencrypt
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done'
+    restart: unless-stopped
+    depends_on:
+      certbot:
+        condition: service_completed_successfully
   hbbr:
     image: rustdesk/rustdesk-server:latest
     command: hbbr -k _
@@ -42,6 +52,7 @@ services:
   https:
     image: nginx:stable
     volumes:
+      - ./nginx-reload.sh:/docker-entrypoint.d/40-nginx-reload.sh:ro
       - ./https.conf:/etc/nginx/conf.d/default.conf:ro
       - ./options-ssl-nginx.conf:/etc/nginx/options-ssl-nginx.conf:ro
       - ./ssl-dhparams.pem:/etc/nginx/ssl-dhparams.pem:ro
