@@ -6,6 +6,11 @@ services:
       - letsencrypt_var:/var/lib/letsencrypt
     network_mode: host
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/.well-known/acme-challenge/healthz | grep -q 404"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
   certbot:
     image: certbot/certbot:latest
     volumes:
@@ -16,7 +21,8 @@ services:
       --email YOUR_EMAIL_ADDRESS_HERE
       -d RUSTDESK_SERVER_DOMAIN_HERE
     depends_on:
-      - http
+      http:
+        condition: service_healthy
   hbbr:
     image: rustdesk/rustdesk-server:latest
     command: hbbr -k _
