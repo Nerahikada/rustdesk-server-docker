@@ -41,3 +41,14 @@ ufw deny 21119/tcp
 ```
 
 Host networking is what makes this work: Docker only installs the `DOCKER` iptables chain that bypasses ufw for *published* ports, and this stack publishes none. If you run behind a cloud firewall or security group, express the same rules there instead.
+
+## Updating
+
+Pull before bringing the stack back up:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+`docker compose up -d` on its own is not enough. Compose defaults to the `missing` pull policy, which re-pulls only the `latest` tag, so `nginx:stable` stays at whatever version you first pulled. Because the containers restart on their own, an nginx and OpenSSL with known vulnerabilities would otherwise keep terminating TLS indefinitely.
