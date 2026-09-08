@@ -28,9 +28,9 @@ docker compose up -d
 | 21118 | TCP | hbbs | **no** | WebSocket, nginx only |
 | 21119 | TCP | hbbr | **no** | WebSocket, nginx only |
 
-**You must block 21118 and 21119 from the internet.** They are the plaintext listeners behind `/ws/id` and `/ws/relay`, and RustDesk Server trusts their `X-Real-IP` / `X-Forwarded-For` headers verbatim, so anyone reaching them directly can forge a source IP or skip TLS entirely. Upstream is explicit about it: *"Do not expose the WebSocket port directly to untrusted networks."*
+**You must block 21118 and 21119 from the internet.** They are plaintext listeners whose `X-Real-IP` / `X-Forwarded-For` headers RustDesk Server trusts verbatim, so anyone reaching them directly can forge a source IP.
 
-Loopback binding is not an option — `-b` applies to every listener at once — so use a firewall:
+Example, with ufw:
 
 ```bash
 ufw allow 80,443/tcp
@@ -40,8 +40,6 @@ ufw deny 21118/tcp
 ufw deny 21119/tcp
 ```
 
-This stack publishes no ports, so Docker never installs the `DOCKER` iptables chain that would bypass ufw. Behind a cloud firewall or security group, apply the same rules there.
-
 ## Updating
 
 ```bash
@@ -49,4 +47,4 @@ docker compose pull
 docker compose up -d
 ```
 
-`docker compose up -d` alone is not enough: Compose's default `missing` pull policy re-pulls only the `latest` tag, so `nginx:stable` would keep terminating TLS with whatever OpenSSL you first pulled.
+`docker compose up -d` alone won't update `nginx:stable` — Compose's default `missing` pull policy only re-pulls `latest`.
