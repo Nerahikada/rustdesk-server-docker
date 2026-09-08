@@ -1,34 +1,21 @@
 services:
-  http:
-    image: nginx:stable
-    volumes:
-      - ./http.conf:/etc/nginx/conf.d/default.conf:ro
-      - letsencrypt_var:/var/lib/letsencrypt:ro
-    network_mode: host
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/.well-known/acme-challenge/healthz | grep -q 404"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
   certbot:
     image: certbot/certbot:latest
     volumes:
       - letsencrypt_etc:/etc/letsencrypt
       - letsencrypt_var:/var/lib/letsencrypt
     command: >
-      certonly --agree-tos --no-eff-email --non-interactive --webroot --webroot-path /var/lib/letsencrypt
+      certonly --agree-tos --no-eff-email --non-interactive --standalone
       --email ${CERTBOT_EMAIL:?set CERTBOT_EMAIL in .env}
       -d ${RUSTDESK_DOMAIN:?set RUSTDESK_DOMAIN in .env}
-    depends_on:
-      http:
-        condition: service_healthy
+    network_mode: host
   certbot_renew:
     image: certbot/certbot:latest
     volumes:
       - letsencrypt_etc:/etc/letsencrypt
       - letsencrypt_var:/var/lib/letsencrypt
-    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done'
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --standalone --quiet; sleep 12h & wait $${!}; done'
+    network_mode: host
     restart: unless-stopped
     depends_on:
       certbot:
