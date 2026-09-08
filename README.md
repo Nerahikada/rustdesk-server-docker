@@ -16,21 +16,21 @@ docker compose up -d
 
 ## Firewall
 
-All services use host networking, so `hbbs` and `hbbr` bind on every interface. These are the ports they open:
+`hbbs`, `hbbr` and both nginx services use host networking, so they bind on every interface.
 
-| Port | Protocol | Service | Reachable from |
-| --- | --- | --- | --- |
-| 80 | TCP | nginx | internet (ACME http-01 only) |
-| 443 | TCP | nginx | internet (WebSocket over TLS) |
-| 21115 | TCP | hbbs | internet (NAT type test) |
-| 21116 | TCP + UDP | hbbs | internet (ID registration, rendezvous, hole punching) |
-| 21117 | TCP | hbbr | internet (relay) |
-| 21118 | TCP | hbbs | **nginx only — block externally** |
-| 21119 | TCP | hbbr | **nginx only — block externally** |
+| Port | Protocol | Service | Internet | Purpose |
+| --- | --- | --- | --- | --- |
+| 80 | TCP | nginx | yes | ACME http-01 |
+| 443 | TCP | nginx | yes | WebSocket over TLS |
+| 21115 | TCP | hbbs | yes | NAT type test |
+| 21116 | TCP + UDP | hbbs | yes | ID registration, rendezvous, hole punching |
+| 21117 | TCP | hbbr | yes | relay |
+| 21118 | TCP | hbbs | **no** | WebSocket, nginx only |
+| 21119 | TCP | hbbr | **no** | WebSocket, nginx only |
 
-**You must block 21118 and 21119 from the internet.** They are the plaintext WebSocket listeners that nginx proxies `/ws/id` and `/ws/relay` to, and RustDesk Server adopts the `X-Real-IP` / `X-Forwarded-For` headers on them verbatim. Anyone who can reach them directly can claim any source IP, which defeats blocklists and corrupts logged addresses, and can also skip TLS entirely. Upstream documents this in `relay_server.rs` and `rendezvous_server.rs`: *"Do not expose the WebSocket port directly to untrusted networks."*
+**You must block 21118 and 21119 from the internet.** They are the plaintext listeners behind `/ws/id` and `/ws/relay`, and RustDesk Server trusts their `X-Real-IP` / `X-Forwarded-For` headers verbatim, so anyone reaching them directly can forge a source IP or skip TLS entirely. Upstream is explicit about it: *"Do not expose the WebSocket port directly to untrusted networks."*
 
-`hbbs` and `hbbr` apply `-b` to every listener at once, so the WebSocket ports cannot be bound to loopback without also moving rendezvous and relay off the public interfaces. Use a firewall instead:
+Loopback binding is not an option — `-b` applies to every listener at once — so use a firewall:
 
 ```bash
 ufw allow 80,443/tcp
@@ -40,15 +40,13 @@ ufw deny 21118/tcp
 ufw deny 21119/tcp
 ```
 
-Host networking is what makes this work: Docker only installs the `DOCKER` iptables chain that bypasses ufw for *published* ports, and this stack publishes none. If you run behind a cloud firewall or security group, express the same rules there instead.
+This stack publishes no ports, so Docker never installs the `DOCKER` iptables chain that would bypass ufw. Behind a cloud firewall or security group, apply the same rules there.
 
 ## Updating
-
-Pull before bringing the stack back up:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-`docker compose up -d` on its own is not enough. Compose defaults to the `missing` pull policy, which re-pulls only the `latest` tag, so `nginx:stable` stays at whatever version you first pulled. Because the containers restart on their own, an nginx and OpenSSL with known vulnerabilities would otherwise keep terminating TLS indefinitely.
+`docker compose up -d` alone is not enough: Compose's default `missing` pull policy re-pulls only the `latest` tag, so `nginx:stable` would keep terminating TLS with whatever OpenSSL you first pulled.
